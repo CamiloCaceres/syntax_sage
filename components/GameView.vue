@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import PythonEditor from './PythonEditor.vue'
+import PythonEditor from '~/components/editors/PythonEditor.vue'
+import CodeEditor from '~/components/editors/CodeEditor.vue'
 
 const store = useGameStore();
 const showFeedback = ref(false);
 const hintVisible = ref(false);
 const isCorrect = ref(false);
 const feedbackMessage = ref("");
+const { currentLanguage } = useLanguage();
 
 const currentExercise = computed(() => store.currentExercise);
 const isGameFinished = computed(() => store.isGameFinished);
@@ -14,13 +16,13 @@ const progress = computed(() => store.progress);
 
 // Compute the initial content for the editor
 const editorContent = computed(() => {
-  if (!currentExercise.value) return '';
+  if (!currentExercise.value ) return '';
   return [
-    `// Question: ${currentExercise.value.question}`,
+    `${currentLanguage.value === 'python' ? '# Question:' : '// Question:'} ${currentExercise.value.question}`,
     '',
     currentExercise.value.code,
     '',
-    '// Write your answer below:',
+    `${currentLanguage.value === 'python' ? '# Write your answer below:' : '// Write your answer below:'}`,
     ''  // Add an empty line for the answer
   ].join('\n');
 });
@@ -94,52 +96,57 @@ const restartGame = () => {
 </script>
 
 <template>
-  <div class="max-w-2xl mx-auto p-4">
+  <div class="max-w-4xl mx-auto p-8 rounded-3xl bg-gradient-to-br from-blue-800/50 via-slate-500/50 to-slate-800/50 backdrop-blur-lg">
+   <h1 class="text-3xl font-bold mb-8 text-center">Programming Methods Game</h1>
     <!-- Progress Bar -->
-    <div class="mb-6">
-      <div class="flex justify-between mb-2">
-        <span>Progress: {{ progress.current }}/{{ progress.total }}</span>
-        <span>Score: {{ progress.score }}/{{ progress.attempted }}</span>
+    <div class="mb-8 backdrop-blur-lg bg-white/0 rounded-2xl p-4 shadow-xl">
+      <div class="flex justify-between mb-3 text-blue-100">
+        <span class="font-medium">Progress: {{ progress.current }}/{{ progress.total }}</span>
+        <span class="font-medium">Score: {{ progress.score }}/{{ progress.attempted }}</span>
       </div>
-      <div class="w-full bg-gray-200 rounded-full h-2.5">
+      <div class="w-full bg-blue-950/50 rounded-full h-3">
         <div
-          class="bg-blue-600 h-2.5 rounded-full"
+          class="bg-blue-400 h-3 rounded-full transition-all duration-300 ease-out"
           :style="`width: ${(progress.current / progress.total) * 100}%`"
         ></div>
       </div>
     </div>
 
+  
+
     <!-- Exercise Card -->
-    <div v-if="currentExercise" class="bg-white rounded-lg shadow-lg p-6">
-      <PythonEditor
+    <div v-if="currentExercise" class="backdrop-blur-xl bg-white/10 rounded-3xl shadow-2xl p-8 border border-white/0">
+      <component
+        :is="currentLanguage === 'python' ? PythonEditor : CodeEditor"
         v-model:content="fullContent"
         :initial-content="editorContent"
         :readonly="showFeedback"
-        height="200px"
+        height="250px"
+        class="mb-6"
         :availableVariables="[
           { name: 'numbers', type: 'list', info: 'List of numbers to work with' }
         ]"
       />
 
-      <div class="space-y-4 mt-4">
-        <div class="flex gap-3">
+      <div class="space-y-6">
+        <div class="flex gap-4">
           <button
             @click="checkAnswer"
-            class="flex-1 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
+            class="flex-1 bg-blue-500/80 hover:bg-blue-600/80 text-white py-3 px-6 rounded-xl font-medium transition-all duration-200 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
             :disabled="showFeedback"
           >
             Submit
           </button>
           <button
             @click="showHint"
-            class="flex-1 bg-gray-200 py-2 px-4 rounded-lg hover:bg-gray-300"
+            class="flex-1 bg-gray-700/50 hover:bg-gray-600/50 text-blue-100 py-3 px-6 rounded-xl font-medium transition-all duration-200 backdrop-blur-sm disabled:opacity-50"
             :disabled="showFeedback"
           >
             Hint
           </button>
           <button
             @click="skipQuestion"
-            class="flex-1 bg-gray-200 py-2 px-4 rounded-lg hover:bg-gray-300"
+            class="flex-1 bg-gray-700/50 hover:bg-gray-600/50 text-blue-100 py-3 px-6 rounded-xl font-medium transition-all duration-200 backdrop-blur-sm disabled:opacity-50"
             :disabled="showFeedback"
           >
             Skip
@@ -147,20 +154,20 @@ const restartGame = () => {
         </div>
 
         <!-- Feedback Area -->
-        <div v-if="showFeedback" class="space-y-3">
-          <div :class="isCorrect ? 'text-green-600' : 'text-red-600'">
+        <div v-if="showFeedback" class="space-y-4">
+          <div :class="isCorrect ? 'text-green-400' : 'text-red-400'" class="text-lg font-medium">
             {{ feedbackMessage }}
           </div>
-          <div v-if="!isCorrect" class="text-gray-600">
-            Correct answer: <code>{{ currentExercise.answer }}</code>
+          <div v-if="!isCorrect" class="text-blue-200">
+            Correct answer: <code class="bg-blue-900/50 px-2 py-1 rounded">{{ currentExercise.answer }}</code>
           </div>
-          <div class="bg-yellow-50 p-3 rounded">
+          <div class="bg-blue-950/50 p-4 rounded-xl text-blue-100">
             <p>{{ currentExercise.explanation }}</p>
           </div>
           
           <button
             @click="nextQuestion"
-            class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
+            class="w-full bg-blue-500/80 hover:bg-blue-600/80 text-white py-3 px-6 rounded-xl font-medium transition-all duration-200 backdrop-blur-sm"
           >
             {{ isGameFinished ? "See Results" : "Next Question" }}
           </button>
@@ -169,7 +176,7 @@ const restartGame = () => {
         <!-- Hint Area -->
         <div
           v-if="hintVisible && !showFeedback"
-          class="bg-yellow-50 p-3 rounded"
+          class="bg-blue-950/50 p-4 rounded-xl text-blue-100"
         >
           <p>💡 {{ currentExercise.hint }}</p>
         </div>
@@ -177,19 +184,20 @@ const restartGame = () => {
     </div>
 
     <!-- Results Screen -->
-    <div v-else-if="isGameFinished" class="text-center">
-      <h2 class="text-2xl font-bold mb-4">Game Complete!</h2>
-      <p class="text-lg mb-4">
+    <div v-else-if="isGameFinished" class="text-center backdrop-blur-xl bg-white/10 rounded-3xl shadow-2xl p-8 border border-white/20">
+      <h2 class="text-3xl font-bold mb-6 text-blue-100">Game Complete!</h2>
+      <p class="text-xl mb-6 text-blue-200">
         Your score: {{ progress.score }}/{{ progress.total }} ({{
           Math.round((progress.score / progress.total) * 100)
         }}%)
       </p>
       <button
         @click="restartGame"
-        class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
+        class="bg-blue-500/80 hover:bg-blue-600/80 text-white py-3 px-8 rounded-xl font-medium transition-all duration-200 backdrop-blur-sm"
       >
         Play Again
       </button>
     </div>
   </div>
 </template>
+
