@@ -13,6 +13,7 @@ const props = defineProps<{
   readonly?: boolean
   height?: string
   availableVariables?: Array<{ name: string, type: string, info: string }>
+  cursorPosition?: number
 }>()
 
 const emit = defineEmits<{
@@ -85,6 +86,7 @@ onMounted(() => {
 
   const startState = EditorState.create({
     doc: props.initialContent,
+    selection: {anchor: props.cursorPosition || 0},
     extensions: [
       basicSetup,
       javascript(),
@@ -124,6 +126,16 @@ watch(() => props.initialContent, (newContent) => {
   }
 })
 
+// Add this watch
+watch(() => props.cursorPosition, (newPos) => {
+  if (editor.value && typeof newPos === 'number') {
+    editor.value.dispatch({
+      selection: {anchor: newPos}
+    })
+    editor.value.focus()
+  }
+})
+
 // Cleanup on component unmount
 onUnmounted(() => {
   editor.value?.destroy()
@@ -136,7 +148,7 @@ onUnmounted(() => {
 
 <style>
 .cm-editor {
-  height: 100%;
+  height: 120%;
 }
 .cm-editor.cm-focused {
   outline: none;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, nextTick } from "vue";
 import PythonEditor from "~/components/editors/PythonEditor.vue";
 import CodeEditor from "~/components/editors/CodeEditor.vue";
 
@@ -57,6 +57,27 @@ const getUserAnswer = (content: string) => {
 
   return "";
 };
+
+// Add this after the getUserAnswer function
+const getAnswerLinePosition = (content: string) => {
+  const lines = content.split("\n");
+  const marker = currentLanguage.value === "python" 
+    ? "# Write your answer below:" 
+    : "// Write your answer below:";
+  
+  const answerMarkerIndex = lines.findIndex(
+    (line) => line.trim() === marker
+  );
+
+  // Return position after the marker line
+  return answerMarkerIndex !== -1 
+    ? lines.slice(0, answerMarkerIndex + 1).join("\n").length + 1
+    : 0;
+};
+
+// Add this computed property
+const answerPosition = ref(0);
+
 defineShortcuts({
   meta_enter: {
     usingInput: true,
@@ -68,6 +89,10 @@ defineShortcuts({
 
 onMounted(() => {
   store.initializeGame();
+  // Set initial cursor position after game loads
+  nextTick(() => {
+    answerPosition.value = getAnswerLinePosition(fullContent.value);
+  });
 });
 
 const checkAnswer = () => {
@@ -90,8 +115,15 @@ const nextQuestion = () => {
   showFeedback.value = false;
   hintVisible.value = false;
   store.nextExercise();
+  
   // Reset the editor content for the next question
   fullContent.value = editorContent.value;
+  
+  // Use nextTick to ensure content is updated before setting cursor
+  nextTick(() => {
+    // Force cursor position update
+    answerPosition.value = getAnswerLinePosition(fullContent.value);
+  });
 };
 
 const skipQuestion = () => {
@@ -142,13 +174,14 @@ const restartGame = () => {
     <!-- Exercise Card -->
     <div
       v-if="currentExercise"
-      class="backdrop-blur-2xl bg-white/0 rounded-3xl shadow-2xl px-4 py-8 md:p-8 border border-white/0"
+      class="backdrop-blur-2xl bg-white/0 rounded-3xl shadow-2xl px-4 py-8 md:p-8 border border-white/0 relative"
     >
       <component
         :is="currentLanguage === 'python' ? PythonEditor : CodeEditor"
         v-model:content="fullContent"
         :initial-content="editorContent"
         :readonly="showFeedback"
+        :cursor-position="answerPosition"
         height="250px"
         class="mb-6"
         :availableVariables="[
@@ -163,26 +196,21 @@ const restartGame = () => {
       <div class="space-y-6">
         <div class="flex gap-4">
           <button
-            @click="checkAnswer"
-            class="flex-1 bg-blue-500/80 hover:bg-blue-600/80 text-white py-3 px-6 rounded-xl font-medium transition-all duration-200 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            :disabled="showFeedback"
-          >
-            Submit
-          </button>
-          <button
-            @click="showHint"
-            class="flex-1 bg-gray-700/50 hover:bg-gray-600/50 text-blue-100 py-3 px-6 rounded-xl font-medium transition-all duration-200 backdrop-blur-sm disabled:opacity-50"
-            :disabled="showFeedback"
-          >
-            Hint
-          </button>
-          <button
             @click="skipQuestion"
             class="flex-1 bg-gray-700/50 hover:bg-gray-600/50 text-blue-100 py-3 px-6 rounded-xl font-medium transition-all duration-200 backdrop-blur-sm disabled:opacity-50"
             :disabled="showFeedback"
           >
             Skip
           </button>
+          <button
+            @click="checkAnswer"
+            class="flex-1 bg-blue-500/80 hover:bg-blue-600/80 text-white py-3 px-6 rounded-xl font-medium transition-all duration-200 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            :disabled="showFeedback"
+          >
+            Submit
+          </button>
+
+       
         </div>
 
         <!-- Feedback Area -->
@@ -219,6 +247,7 @@ const restartGame = () => {
           <p>💡 {{ currentExercise.hint }}</p>
         </div>
       </div>
+      <UButton :disabled="showFeedback" color="yellow" class="absolute top-1 right-1" icon="i-heroicons-light-bulb" variant="link" @click="showHint"></UButton>
     </div>
 
     <!-- Results Screen -->

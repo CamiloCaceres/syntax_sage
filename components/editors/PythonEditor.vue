@@ -13,6 +13,7 @@ const props = defineProps<{
   readonly?: boolean
   height?: string
   availableVariables?: Array<{ name: string, type: string, info: string }>
+  cursorPosition?: number
 }>()
 
 const emit = defineEmits<{
@@ -92,6 +93,7 @@ onMounted(() => {
 
   const startState = EditorState.create({
     doc: props.initialContent,
+    selection: {anchor: props.cursorPosition || 0},
     extensions: [
       basicSetup,
       python(),
@@ -128,6 +130,16 @@ watch(() => props.initialContent, (newContent) => {
         insert: newContent
       }
     })
+  }
+})
+
+// Add this watch
+watch(() => props.cursorPosition, (newPos) => {
+  if (editor.value && typeof newPos === 'number') {
+    editor.value.dispatch({
+      selection: {anchor: newPos}
+    })
+    editor.value.focus()
   }
 })
 
