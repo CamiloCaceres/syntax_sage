@@ -21,6 +21,7 @@ export const pythonArrayMethods: Method[] = [
       },
       {
         id: 'py_list_len_2',
+        // TODO: REVISE this exercise, remove 3 from the numbers in the list
         code: 'nested_list = [[1, 2], [3, 4], [5, 6]]',
         question: 'What method returns 3?',
         answer: 'len(nested_list)',

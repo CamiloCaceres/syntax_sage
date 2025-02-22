@@ -1,10 +1,16 @@
+<template>
+  <div class="container mx-auto py-8">
+    <h1 class="text-3xl font-bold mb-8">Programming Methods Game</h1>
+
+    <div class="flex  ">
+   <GameView />
+   <MonacoEditor v-model="code"/>
+    </div>
+  </div>
+</template>
+
 <script setup lang="ts">
 
-</script>
+const code = ref('')
 
-<template>
-    <div>
-        <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 text-transparent bg-clip-text">Welcome to SyntaxSage</h1>
-        <p class="text-lg">SyntaxSage is a platform that helps you learn programming languages by providing exercises and explanations.</p>
-    </div>
-</template>
+</script>
