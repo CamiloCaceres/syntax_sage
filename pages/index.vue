@@ -4,7 +4,6 @@
 
     <div class="flex  ">
    <GameView />
-   <MonacoEditor v-model="code"/>
     </div>
   </div>
 </template>

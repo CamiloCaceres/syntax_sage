@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import PythonEditor from './PythonEditor.vue'
 
 const store = useGameStore();
-const userAnswer = ref("");
 const showFeedback = ref(false);
 const hintVisible = ref(false);
 const isCorrect = ref(false);
@@ -12,6 +12,43 @@ const currentExercise = computed(() => store.currentExercise);
 const isGameFinished = computed(() => store.isGameFinished);
 const progress = computed(() => store.progress);
 
+// Compute the initial content for the editor
+const editorContent = computed(() => {
+  if (!currentExercise.value) return '';
+  return [
+    `// Question: ${currentExercise.value.question}`,
+    '',
+    currentExercise.value.code,
+    '',
+    '// Write your answer below:',
+    ''  // Add an empty line for the answer
+  ].join('\n');
+});
+
+// Track the user's answer from the editor content
+const fullContent = ref(editorContent.value);
+
+// Extract answer from the full content
+const getUserAnswer = (content: string) => {
+  const lines = content.split('\n');
+  const answerMarkerIndex = lines.findIndex(line => 
+    line.trim() === '// Write your answer below:');
+  
+  if (answerMarkerIndex === -1 || answerMarkerIndex === lines.length - 1) {
+    return '';
+  }
+
+  // Get the next non-empty line after the marker
+  for (let i = answerMarkerIndex + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line && !line.startsWith('//')) {
+      return line;
+    }
+  }
+  
+  return '';
+};
+
 onMounted(() => {
   store.initializeGame();
 });
@@ -19,7 +56,8 @@ onMounted(() => {
 const checkAnswer = () => {
   if (!currentExercise.value) return;
 
-  isCorrect.value = userAnswer.value.trim() === currentExercise.value.answer;
+  const userAnswer = getUserAnswer(fullContent.value);
+  isCorrect.value = userAnswer === currentExercise.value.answer;
   feedbackMessage.value = isCorrect.value
     ? "Correct! Well done!"
     : "Not quite right.";
@@ -31,18 +69,16 @@ const checkAnswer = () => {
   showFeedback.value = true;
 };
 
-const r = userAnswer.value;
-
 const nextQuestion = () => {
-  userAnswer.value = "";
   showFeedback.value = false;
   hintVisible.value = false;
   store.nextExercise();
+  // Reset the editor content for the next question
+  fullContent.value = editorContent.value;
 };
 
 const skipQuestion = () => {
   store.skipExercise();
-  userAnswer.value = "";
   hintVisible.value = false;
 };
 
@@ -52,7 +88,6 @@ const showHint = () => {
 
 const restartGame = () => {
   store.initializeGame();
-  userAnswer.value = "";
   showFeedback.value = false;
   hintVisible.value = false;
 };
@@ -76,24 +111,17 @@ const restartGame = () => {
 
     <!-- Exercise Card -->
     <div v-if="currentExercise" class="bg-white rounded-lg shadow-lg p-6">
-      <div class="bg-gray-50 p-4 rounded-lg mb-4">
-        <pre><code>{{ currentExercise.code }}</code></pre>
-      </div>
+      <PythonEditor
+        v-model:content="fullContent"
+        :initial-content="editorContent"
+        :readonly="showFeedback"
+        height="200px"
+        :availableVariables="[
+          { name: 'numbers', type: 'list', info: 'List of numbers to work with' }
+        ]"
+      />
 
-      <p class="text-lg mb-4">{{ currentExercise.question }}</p>
-
-      <div class="space-y-4">
-        <div>
-          <input
-            v-model="userAnswer"
-            type="text"
-            class="w-full p-3 border rounded-lg"
-            placeholder="Type your answer..."
-            :disabled="showFeedback"
-            @keyup.enter="checkAnswer"
-          />
-        </div>
-
+      <div class="space-y-4 mt-4">
         <div class="flex gap-3">
           <button
             @click="checkAnswer"
